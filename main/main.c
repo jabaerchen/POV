@@ -22,12 +22,43 @@
 
 static const char *TAG = "POV";
 
-const uint32_t GPIO_OUTPUT_PIN_SEL = (BIT(GPIO_AND0) | BIT(GPIO_AND1) | BIT(GPIO_AND2) | BIT(GPIO_AND3) | BIT(GPIO_DECODER_0) | BIT(GPIO_DECODER_1));
+#define NUM_STEP_THETA 16
+#define NUM_STEP_PHI 64
+#define COLOUR 3
+#define SEGMENTS 4
+#define DOUBLE_BUFFER 2
+
+static uint8_t frame[DOUBLE_BUFFER][NUM_STEP_PHI][SEGMENTS][COLOUR][NUM_STEP_THETA];
+static uint8_t current_buffer = 0;
+
+const uint32_t GPIO_OUTPUT_PIN_SEL = (BIT(GPIO_AND0) | BIT(GPIO_AND1) | BIT(GPIO_AND2) | BIT(GPIO_AND3) | BIT(GPIO_DECODER_0) | BIT(GPIO_DECODER_1) | BIT(GPIO_CLK));
+
+void syncLatch()
+{
+    gpio_set_level(GPIO_DECODER_0, 1);
+    gpio_set_level(GPIO_DECODER_1, 1);
+}
+
+void SetPixel(const uint8_t phi, const uint8_t theta, const int32_t color)
+{
+    // frame[current_buffer][0][p]
+
+}
+/**
+ * 0 -> G
+ * 1 -> B
+ * 2 -> R
+*/
+void setCathode(const uint8_t color)
+{
+    gpio_set_level(GPIO_DECODER_0, color & 0x1);
+    gpio_set_level(GPIO_DECODER_1, color & 0x2);
+}
 
 void hw_timer_callback(void *arg)
 {
 
-    //ESP_LOGI(TAG, "hw_timer_callback");
+    // ESP_LOGI(TAG, "hw_timer_callback");
     static int state = 0;
     static int color = 0;
     static int ledNbr = 0;
@@ -37,16 +68,14 @@ void hw_timer_callback(void *arg)
     {
         // set all channels
         int j = 0;
-        if(i == ledNbr)
+        if (i == ledNbr)
         {
-            j = 0;
+            j = 1;
         }
         gpio_set_level(GPIO_AND0, j);
         gpio_set_level(GPIO_AND1, j);
         gpio_set_level(GPIO_AND2, j);
         gpio_set_level(GPIO_AND3, j);
-
-
 
         vTaskDelay(1 / portTICK_RATE_MS);
         gpio_set_level(GPIO_CLK, 0);
@@ -55,22 +84,23 @@ void hw_timer_callback(void *arg)
         vTaskDelay(1 / portTICK_RATE_MS);
     }
     ledNbr++;
-    if(ledNbr == 16)
+    if (ledNbr == 16)
     {
         ledNbr = 0;
         color = (state++) % 3;
     }
 
-
     // sync latch
-    gpio_set_level(GPIO_DECODER_0, 1);
-    gpio_set_level(GPIO_DECODER_1, 1);
+    vTaskDelay(1 / portTICK_RATE_MS);
+    syncLatch();
+    vTaskDelay(1 / portTICK_RATE_MS);
 
     // set next color
-    gpio_set_level(GPIO_DECODER_0, color & 0x1);
-    gpio_set_level(GPIO_DECODER_1, color & 0x2);
-    
+    setCathode(color);
+    vTaskDelay(1 / portTICK_RATE_MS);
 }
+
+
 
 void app_main()
 {
@@ -84,14 +114,10 @@ void app_main()
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
 
-    gpio_set_level(GPIO_DECODER_0, 0);
-    gpio_set_level(GPIO_DECODER_1, 0);
-
     ESP_LOGI(TAG, "Initialize hw_timer for callback1");
     hw_timer_init(hw_timer_callback, NULL);
 
     hw_timer_alarm_us(500000, true);
-
 
     ESP_LOGI(TAG, "in endless loop");
     while (true)
