@@ -16,3 +16,7 @@ export PYTHONPATH=/usr/lib/python2.7/
 # build
 make
 ```
+
+## Hardware
+
+Hall sensor: https://www.infineon.com/dgdl/Infineon-TLE49X5L-DataSheet-v01_05-en.pdf?fileId=db3a304316f66ee80117549ac8b206b1
