@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools-extension-pack",
+        "twxs.cmake",
+        "streetsidesoftware.code-spell-checker",
+        "donjayamanne.githistory",
+        "mhutchie.git-graph"
+    ]
+}
